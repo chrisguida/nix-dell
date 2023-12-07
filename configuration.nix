@@ -112,7 +112,6 @@
     curl
     htop
     git
-    gh
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -154,30 +153,33 @@
   # wanted to set --database-upgrade=true for Release Candidate builds. 
   # useful, not fully recommended
 #  systemd.services.clightning.serviceConfig.ExecStart = lib.mkForce "${config.services.clightning.package}/bin/lightningd --lightning-dir=${config.services.clightning.dataDir} --database-upgrade=true";
+  systemd.services.clightning.serviceConfig.Environment = lib.mkForce "RUST_LOG=trace";
   services.clightning = {
     enable = true;
     # this lets me pick a tag/commit for a CLN build
     package =  pkgs.clightning.overrideAttrs (
       orig:
-      let version = "v23.02.2"; in
+#      let version = "v23.02.2"; in
+      let version = "44c5b523683160e8c20bda200c6a5a59ea40bc5e"; in
       {
         version = version;
         src = pkgs.fetchFromGitHub {
-          owner = "ElementsProject";
+          owner = "niftynei";
           repo = "lightning";
           rev = "${version}";
           fetchSubmodules = true;
-          sha256 = "sha256-UgEJ0K8G2VvyVaY57pxOeiSWtn2z4CRcye5meH2Ffco=";
+#          sha256 = "sha256-UgEJ0K8G2VvyVaY57pxOeiSWtn2z4CRcye5meH2Ffco=";
+          sha256 = "sha256-tWxnuVHhXl7JWwMxQ46b+Jd7PeoMVr7pnWXv5Of5AeI=";
         };
         # i run CLN as developer + with experimental-features on
 #        configureFlags = [ "--enable-developer" "--disable-valgrind" "--enable-experimental-features" ];
 #        makeFlags = [ "VERSION=${version}" ];
+#        log-file=/var/lib/clightning/logs/log
     });
     extraConfig = ''
         alias=shadowysupernode
         rgb=CF0599
         log-level=debug
-        log-file=/var/lib/clightning/logs/log
         log-timestamps=true
         fee-base=1000
         fee-per-satoshi=5
@@ -197,18 +199,20 @@
         channel-fee-max-proportional-thousandths=2
     '';
     plugins.summary.enable = true;
+#    plugins.clboss.enable = true;
+#    plugins.clboss.acknowledgeDeprecation = true;
   };
-  systemd.services.clightning.serviceConfig = let
-    cfg = config.services.clightning;
-  in
-    lib.mkForce {
+#  systemd.services.clightning.serviceConfig = let
+#    cfg = config.services.clightning;
+#  in
+#    lib.mkForce {
 #      ExecStart = "${cfg.package}/bin/lightningd --lightning-dir=${cfg.dataDir}";
-      # or use this, analogous to your configuration.nix
-      ExecStart = "${cfg.package}/bin/lightningd --lightning-dir=${cfg.dataDir} --database-upgrade=true";
-      User = cfg.user;
-      Restart = "on-failure";
-      RestartSec = "10s";
-    };
+#      # or use this, analogous to your configuration.nix
+#      ExecStart = "${cfg.package}/bin/lightningd --lightning-dir=${cfg.dataDir} --database-upgrade=true";
+#      User = cfg.user;
+#      Restart = "on-failure";
+#      RestartSec = "10s";
+#    };
 
   systemd.services.bitcoind.serviceConfig.TimeoutStartSec = lib.mkForce "48h";
   services.bitcoind = {
@@ -218,7 +222,7 @@
     txindex = true;
     rpc = {
       address = "0.0.0.0";
-      allowip = [ "192.168.100.0/24" ];
+      allowip = [ "192.168.100.0/24" "100.75.154.0/24" ];
     };
     extraConfig = ''
       blockfilterindex=1
